@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat maadi</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-content">
+        <h2>Chat maadi 💬</h2>
+        <h4>Online Users</h4>
+        <ul id="membersList"></ul>
+      </div>
+      <button id="disconnectBtn" class="disconnect">Disconnect</button>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="main">
+      <div class="join-section">
+        <input type="text" id="nameInput" placeholder="Enter your name" />
+        <button id="setNameBtn">Join</button>
+      </div>
+
+      <div class="chat-box" id="chatBox"></div>
+
+      <div class="message-form">
+        <input type="text" id="messageInput" placeholder="Enter message" />
+        <input type="text" id="toInput" placeholder="To (optional for private)" />
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/script.js"></script>
+</body>
+</html>
