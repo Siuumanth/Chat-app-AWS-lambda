@@ -90,223 +90,260 @@ I also double-checked my Lambda function to ensure it had the necessary `console
 - Even before fixing the `$`, the logs showed **HTTP 200 status**, which was misleading because the function wasn’t actually doing what I expected.
 
 ---
-# CODE:
-```javascript
-const ENDPOINT = 'https://<awesomeID>.execute-api.ap-southeast-1.amazonaws.com/production'
 
-import {
-  ApiGatewayManagementApiClient as Client,
-  PostToConnectionCommand
-} from "@aws-sdk/client-apigatewaymanagementapi";
 
-const client = new Client({ endpoint: ENDPOINT });
-const names = {}
+## 🧪 Testing WebSocket Commands in CMD using `wscat`
 
-const sendToOne = async (id, body) => {
-  try {
-    const command = new PostToConnectionCommand({
-      ConnectionId: id,
-      Data: Buffer.from(JSON.stringify(body))
-    });
-    console.log("📤 Sending to one:", id, body);
-    await client.send(command);
-  } catch (err) {
-    console.log("❌ Error sending to one:", err);
-  }
-};
+After I deployed my WebSocket API using AWS API Gateway and Lambda, I used `wscat` to test the WebSocket connection and routes from the **Command Prompt**. Here's exactly how I did it:
 
-const sendToAll = async (ids, body) =>{
-  const all = ids.map(i => sendToOne(i, body));
-  return Promise.all(all);
+---
+
+#### 1️. Installed `wscat` 
+
+To begin, I made sure `wscat` was installed globally on my system using Node.js:
+
+`npm install -g wscat`
+
+---
+
+#### 2️. Connected to the WebSocket Endpoint
+
+Once I had my WebSocket API Gateway URL (e.g., `wss://<api-id>.execute-api.<region>.amazonaws.com/production`), I connected to it like this:
+
+`wscat -c wss://<api-id>.execute-api.<region>.amazonaws.com/production`
+
+If the connection was successful, I saw output like:
+
+`Connected (press CTRL+C to quit) >`
+
+This meant I was inside the WebSocket session and could now send/receive JSON messages.
+
+---
+
+#### 3️. Sent a Public Message (Initial Attempt – Didn't Work)
+
+At first, I tried sending a message like this (note: this version was **incorrect**):
+
+`> {"action":"sendPublic","message":"hello world"}`
+
+But **nothing happened**—no logs in CloudWatch, no response in the terminal, and no errors. This was confusing at first because the WebSocket stayed connected and there were no visible issues.
+
+---
+
+#### 4️. Discovered Route Key Format Issue
+
+After some debugging and checking CloudWatch logs (once they finally started working), I saw the error:
+
+`Unknown route key: sendPublic`
+
+That’s when I realized that **API Gateway WebSocket routes must be defined with a `$` prefix** in the `action` field.
+
+---
+#### 5️. Corrected the Request with `$` Prefix
+
+So I updated my command to:
+
+`> {"action":"$sendPublic","message":"hello world"}`
+
+This time, it worked correctly:
+
+- The **Lambda function executed**.
+- I saw the **logs in CloudWatch**.
+- If my Lambda returned a message, it appeared in the terminal as well.
+
+---
+
+#### 6️. Sent a Private Message
+
+Similarly, to test sending a private message, I ran:
+
+`> {"action":"$sendPrivate","to":"<username>","message":"this is a secret!"}`
+
+Of course, I made sure the target user was already connected and had set their name via the `"setName"` route.
+
+---
+
+#### 7️. Set My Username
+
+To set my own name, I used:
+
+`> {"action":"$setName","name":"chubs"}`
+
+This helped register my identity on the server and made private messaging and member list updates possible.
+
+---
+
+#### 8️. Observed Output in CMD and CloudWatch
+
+After sending each message:
+
+- I checked the **CMD output** for any server responses.
+    
+- I viewed the **CloudWatch logs** to see what my Lambda was receiving (`event.body`, connection ID, etc.).
+
+---
+
+# 🧠 How WebSocket Routing Works in AWS API Gateway
+
+This document breaks down how AWS WebSocket API maps frontend WebSocket events to backend Lambda functions.
+
+---
+### ✨ Overview
+- AWS WebSocket API is event-driven.
+- You define **route keys** like `$connect`, `sendPublic`, `$disconnect`, etc.
+- API Gateway maps incoming WebSocket messages to these route keys using an **expression**.
+- These routes invoke your Lambda function with appropriate metadata.
+
+---
+### ✅ 1. Frontend Connects
+
+```js
+const socket = new WebSocket("wss://your-api-id.execute-api.region.amazonaws.com/dev");
+```
+
+- Sends WebSocket **handshake** to API Gateway.
+    
+- API Gateway triggers the **`$connect` route**.
+    
+- Lambda receives an event like:
+    
+
+```json
+{
+  "requestContext": {
+    "routeKey": "$connect",
+    "connectionId": "abc123"
+  }
 }
-
-const test = async (event) => {
-  console.log("🔍 EVENT:", JSON.stringify(event));
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ message: "Hello from socket!" } + 'heyy')
-  };
-};
-
-export const handler = async (event) => {
-  console.log("Incoming Event:", JSON.stringify(event));
-  // first we will need info about the request
-  // which will be in the request context
-  let result = {
-    statusCode: 200,
-    body: JSON.stringify('Hello from chubs!')
-  };
-
-  if(event.requestContext){
-    const connectionId = event.requestContext.connectionId;
-    const routeKey = event.requestContext.routeKey;
-    //will countain one of the routes that we defined
-    let body = {}
-    try{
-      if(event.body){
-        body = JSON.parse(event.body);
-        //has stringified json
-      }
-    }catch(err){
-      console.log("Error parsing body: ", err);
-    }
-
-    // 6 cases for 6 routes
-    switch(routeKey){
-      case "$connect":
-        break;
-
-      case "$disconnect":
-        await sendToAll(Object.keys(names), { systemMessage: `${names[connectionId]} has left the chat` });
-        console.log("👋 Disconnected: ", connectionId)
-        delete names[connectionId]
-        await sendToAll(Object.keys(names), {members: Object.values(names)});
-        break;
-
-      case "$default":
-        break;
-
-      case "setName":
-        names[connectionId] = body.name;
-        await sendToAll(Object.keys(names), {members: Object.values(names)});
-        await sendToAll(Object.keys(names), {systemMessage: `${names[connectionId]} has joined the chat`});
-        console.log("name as been setted")
-        break;
-
-      case "sendPublic":
-        await sendToAll( Object.keys(names), {publicMessage : `${names[connectionId]}: ${body.message}`});
-        console.log("public message sent")
-        break;
-
-      case "sendPrivate":
-        //finding connection id of recipient
-        const to = Object.keys(names).find(key => names[key] === body.to);
-        await sendToOne(to, { privateMessage : `${names[connectionId]}: ${body.message}` });
-        console.log("private message sent")
-       break;
-
-      default:
-        console.log("Unknown route key: ", routeKey);
-    }
-  }
-  // TODO implement
-  const response = {
-    statusCode: 200,
-    body: JSON.stringify('Hello from chubs!'),
-  };
-  return result;
-};
 ```
 
-### 🔗 Endpoint and API Client Setup
-
-```js
-const ENDPOINT = 'https://<your-api-id>.execute-api.<region>.amazonaws.com/production';
-```
-
-- This is the WebSocket endpoint provided by API Gateway.
-
-```js
-import { ApiGatewayManagementApiClient as Client, PostToConnectionCommand } from "@aws-sdk/client-apigatewaymanagementapi";
-const client = new Client({ endpoint: ENDPOINT });
-```
-
-- You use AWS SDK v3 to send messages back to connected clients via WebSocket.
-    
----
-### 🧠 In-Memory Store for Names
-
-```js
-const names = {};
-```
-
-- Stores `connectionId → name` mapping.
-    
-- Only works during the current Lambda execution (not persisted).
-    
----
-### 📤 Send Message to One Client
-
-```js
-const sendToOne = async (id, body) => {...};
-```
-
-- Sends a JSON message to a single WebSocket client using their connection ID.
-    
----
-### 📢 Broadcast Message to All
-
-```js
-const sendToAll = async (ids, body) => {...};
-```
-
-- Sends the same message to all connection IDs (basically all users).
-    
----
-### 🚪 Lambda Handler Entry Point
-
-```js
-export const handler = async (event) => {...};
-```
-
-- Main function that handles all WebSocket events.
-- Based on `event.requestContext.routeKey`, it performs different actions.
-    
 ---
 
-### 📦 Parsing Event Details
+### 🔁 2. Backend Handles `$connect`
 
 ```js
-const connectionId = event.requestContext.connectionId;
-const routeKey = event.requestContext.routeKey;
+case "$connect":
+  console.log("New connection:", connectionId);
+  break;
 ```
 
-- Get current user's connection ID and which route triggered this event.
+- You can store the connection ID, log it, or set up user state.
     
 
 ---
 
-### 🔍 Parsing Incoming Message
+### ✅ 3. Frontend Sends Message
 
 ```js
-if(event.body){ body = JSON.parse(event.body); }
+socket.send(JSON.stringify({ action: "sendPublic", message: "hi there" }));
 ```
 
-- Incoming messages from clients are stringified JSON. Parse it before using.
+- API Gateway uses **Route Selection Expression**:
+    
+    ```
+    $request.body.action
+    ```
+    
+- `action: "sendPublic"` triggers the **`sendPublic` route**.
     
 
----
-### 📶 Route Handlers
+Lambda receives:
 
-#### `$connect`
-- Triggered when a new client connects.
-- (Currently does nothing)
-
-#### `$disconnect`
-- Triggered when a user leaves.
-- Broadcasts that they left and updates the member list.
-#### `setName`
-- Stores the user's chosen name.
-- Broadcasts updated members and welcome message.
-#### `sendPublic`
-- Sends a message from one user to **all** users.
-#### `sendPrivate`
-- Finds recipient by name and sends them a private message.
-#### `$default`
-- Catch-all for any unexpected route.
-    
+```json
+{
+  "requestContext": {
+    "routeKey": "sendPublic",
+    "connectionId": "abc123"
+  },
+  "body": "{\"action\":\"sendPublic\",\"message\":\"hi there\"}"
+}
+```
 
 ---
 
-### ✅ Final Lambda Response
+### ❌ 4. Socket Closes
 
 ```js
-return {
-  statusCode: 200,
-  body: JSON.stringify('Hello from chubs!')
-};
+socket.close();
 ```
 
-- Required by AWS even for WebSocket events.
+- Or the browser tab is closed.
     
+- API Gateway triggers **`$disconnect` route**.
+    
+
+Lambda receives:
+
+```json
+{
+  "requestContext": {
+    "routeKey": "$disconnect",
+    "connectionId": "abc123"
+  }
+}
+```
+
+You handle:
+
+```js
+case "$disconnect":
+  delete names[connectionId];
+  broadcast("User left");
+  break;
+```
+
 ---
+
+### 🔍 Why Does `action` Work Automatically?
+
+Because you set **Route Selection Expression** to:
+
+```
+$request.body.action
+```
+
+So API Gateway reads the message body, finds the `action` field, and uses that as the route key.
+
+---
+
+### ⚙ Route Mappings
+
+You define these in API Gateway:
+
+|Route Key|Lambda Target|
+|---|---|
+|`$connect`|`handleChat`|
+|`$disconnect`|`handleChat`|
+|`sendPublic`|`handleChat`|
+|`setName`|`handleChat`|
+
+Your Lambda uses:
+
+```js
+switch (event.requestContext.routeKey) {
+  case "$connect": ...
+  case "$disconnect": ...
+  case "sendPublic": ...
+  case "setName": ...
+}
+```
+
+---
+
+### 🔢 Summary
+
+- WebSocket opens → `$connect` runs.
+    
+- `socket.send({action: "sendPublic"})` → `sendPublic` route runs.
+    
+- `socket.close()` → `$disconnect` runs.
+    
+- You define all routes in API Gateway.
+    
+- API Gateway parses `action` field to determine the route.
+    
+
+---
+
+Let me know if you want this explained with a diagram!
+
