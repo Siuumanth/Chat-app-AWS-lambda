@@ -429,7 +429,6 @@ case "$disconnect": {
 ### 3. **Set Username (`setName`)**
 
 - **Frontend:**
-    
 
 ```js
 setNameBtn.onclick = () => {
@@ -438,8 +437,6 @@ setNameBtn.onclick = () => {
 ```
 
 - **Backend:**
-    
-
 ```js
 case "setName": {
   names[connectionId] = body.name;
@@ -450,12 +447,9 @@ case "setName": {
 ```
 
 ---
-
 ### 4. **Send Public Message (`sendPublic`)**
 
 - **Frontend:**
-    
-
 ```js
 sendBtn.onclick = () => {
   if (!recipientInput.value) {
@@ -465,8 +459,6 @@ sendBtn.onclick = () => {
 ```
 
 - **Backend:**
-    
-
 ```js
 case "sendPublic": {
   const msg = `${names[connectionId]}: ${body.message}`;
@@ -476,12 +468,10 @@ case "sendPublic": {
 ```
 
 ---
-
 ### 5. **Send Private Message (`sendPrivate`)**
 
 - **Frontend:**
     
-
 ```js
 sendBtn.onclick = () => {
   if (recipientInput.value) {
@@ -491,7 +481,6 @@ sendBtn.onclick = () => {
 ```
 
 - **Backend:**
-    
 
 ```js
 case "sendPrivate": {
@@ -523,7 +512,6 @@ socket.onmessage = (event) => {
 ### 7. **Lambda Helpers**
 
 - `sendToOne(connectionId, body)`:
-    
 
 ```js
 const command = new PostToConnectionCommand({
@@ -534,7 +522,6 @@ await apiGateway.send(command);
 ```
 
 - `sendToAll(ids, body)`:
-    
 
 ```js
 await Promise.all(
@@ -547,9 +534,7 @@ await Promise.all(
 ### 8. **Common Mistakes Resolved**
 
 - `action` field from frontend **must match** route keys in API Gateway.
-    
 - AWS WebSocket route keys like `sendPublic` must be mapped correctly —
-    
 
 ```js
 case "$default": {
@@ -559,12 +544,9 @@ case "$default": {
 ```
 
 ---
-
 ### Summary: Trigger Flow Example
 
 - **User joins:**
-    
-
 ```js
 socket.send({ action: "setName", name: "Alice" });
 ```
@@ -575,8 +557,6 @@ await sendToAll(...);
 ```
 
 - **User sends public message:**
-    
-
 ```js
 socket.send({ action: "sendPublic", message: "hello!" });
 ```
@@ -586,7 +566,6 @@ await sendToAll(..., { publicMessage: "Alice: hello!" });
 ```
 
 - **User sends private message:**
-    
 
 ```js
 socket.send({ action: "sendPrivate", to: "Bob", message: "hi!" });
@@ -596,3 +575,5 @@ socket.send({ action: "sendPrivate", to: "Bob", message: "hi!" });
 const to = Object.keys(names).find(key => names[key] === "Bob");
 await sendToOne(to, { privateMessage: "Alice: hi!" });
 ```
+
+---
