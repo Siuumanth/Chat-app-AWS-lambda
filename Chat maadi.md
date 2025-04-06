@@ -58,8 +58,6 @@ When we post to to the connection URL with connection ID as argument, private me
 - I then tried sending requests using `wscat` to test routes like this:
     ```bash
      `wscat -c wss://<your-api-id>.execute-api.<region>.amazonaws.com/production > {"action":"sendPublic","message":"hello world"}    
-```
-   
     - But nothing happened. No logs, no visible output, no errors
 
 Then, to understand what was really the problem, I learnt to enable  CloudWatch logging under the **Logs/Tracing** section in API Gateway. I thought it was set up properly because I ticked the "Enable CloudWatch Logs" checkbox and saved the changes. But even after that, **no logs were appearing** when I triggered my Lambda via `wscat`.
@@ -182,6 +180,10 @@ After sending each message:
 - I viewed the **CloudWatch logs** to see what my Lambda was receiving (`event.body`, connection ID, etc.).
 
 ---
+
+
+
+
 
 # 🧠 How WebSocket Routing Works in AWS API Gateway
 
