@@ -53,7 +53,24 @@ function connectSocket(endpoint) {
 // UI: Append message to chat box
 function appendMessage(msg, type = "public") {
   const p = document.createElement("p");
-  p.textContent = msg;
+
+  // Bold name if format is "name: message"
+  const colonIndex = msg.indexOf(":");
+  if (colonIndex > 0) {
+    const namePart = msg.slice(0, colonIndex).trim();
+    const messagePart = msg.slice(colonIndex + 1).trim();
+
+    const strong = document.createElement("strong");
+    strong.textContent = namePart + ": ";
+
+    const span = document.createElement("span");
+    span.textContent = messagePart;
+
+    p.appendChild(strong);
+    p.appendChild(span);
+  } else {
+    p.textContent = msg;
+  }
 
   switch (type) {
     case "system":
@@ -69,6 +86,7 @@ function appendMessage(msg, type = "public") {
   chatBox.appendChild(p);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
+
 
 // UI: Update member list
 function updateMembers(members) {

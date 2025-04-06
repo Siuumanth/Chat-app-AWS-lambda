@@ -1,8 +1,8 @@
 :root {
-  --violet: #45075d;
+  --violet: #470654;
   --dark-violet: #50056f;
-  --button-violet: #45075d;
-  --disconnect-red: #6c1f8d;
+  --button-violet: #470654;
+  --disconnect-red: rgba(189, 16, 42, 0.884);
   --light-bg: #f4f4f4;
   --white: #ffffff;
   --gray-border: #ccc;
@@ -40,10 +40,19 @@ body {
   flex-direction: column;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap');
+
 .sidebar h2 {
-  margin: 0 0 20px;
-  font-size: 22px;
+  text-align: center;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 25px;
+  font-weight: 1000;
+  margin-bottom: 20px;
+  color: white; /* Futuristic purple vibe */
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
+
 
 .sidebar h4 {
   margin-bottom: 10px;
@@ -74,6 +83,7 @@ body {
 .sidebar .disconnect {
   background-color: var(--disconnect-red);
   margin-top: auto;
+  border: white(102, 5, 66) solid 0.5px;
 }
 
 /* Main Chat Area */
@@ -83,6 +93,7 @@ body {
   flex-direction: column;
   background-color: var(--light-bg);
   padding: 20px;
+  min-height: 0;
 }
 
 .join-section {
@@ -109,6 +120,7 @@ body {
 
 .chat-box {
   flex: 1;
+  min-height: 0; 
   background-color: var(--white);
   border: 1px solid var(--gray-border);
   border-radius: 4px;
@@ -124,6 +136,8 @@ body {
 .message-form {
   display: flex;
 }
+
+
 @media (max-width: 768px) {
   .container {
     flex-direction: column;
