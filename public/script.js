@@ -1,15 +1,15 @@
 let socket = null;
 let username = "";
 
-// get websocket url
+// get websocket url from another endpoint 
 fetch('/get-ws-endpoint')
   .then(res => res.json())
   .then(data => {
-    console.log("Fetched WebSocket endpoint:", data); // 👈 Log this
+    console.log("Fetched WebSocket endpoint:", data);
     if (!data.endpoint) throw new Error("Missing endpoint in response");
     connectSocket(data.endpoint);
   })
-  .catch(err => console.error("Failed to fetch WebSocket endpoint:", err));
+  .catch(err => console.error("Failed to fetch ws endpoint:", err));
 
 // DOM elements
 const setNameBtn = document.getElementById("setNameBtn");
@@ -22,7 +22,7 @@ const toInput = document.getElementById("toInput");
 const chatBox = document.getElementById("chatBox");
 const membersList = document.getElementById("membersList");
 
-// Connect to WebSocket
+// connecting to WebSocket
 function connectSocket(endpoint) {
   socket = new WebSocket(endpoint);
 
@@ -41,7 +41,7 @@ function connectSocket(endpoint) {
   };
 
   socket.onclose = () => {
-    console.log("🔌 Disconnected from WebSocket");
+    console.log("Disconnected from WebSocket");
     appendMessage("[System] Disconnected from server", "system");
   };
 
@@ -88,7 +88,7 @@ function appendMessage(msg, type = "public") {
 }
 
 
-// UI: Update member list
+// updating member list
 function updateMembers(members) {
   membersList.innerHTML = "";
   members.forEach(member => {
@@ -98,7 +98,7 @@ function updateMembers(members) {
   });
 }
 
-// Handle name setting
+// handling name setting
 setNameBtn.addEventListener("click", () => {
   const inputName = nameInput.value.trim();
   if (!inputName) return;
@@ -114,7 +114,7 @@ setNameBtn.addEventListener("click", () => {
   appendMessage(`[System] You joined as ${username}`, "system");
 });
 
-// Send message
+// sending message
 sendBtn.addEventListener("click", () => {
   const message = messageInput.value.trim();
   const to = toInput.value.trim();
@@ -130,7 +130,7 @@ sendBtn.addEventListener("click", () => {
   messageInput.value = "";
 });
 
-// Disconnect
+// disconnecting
 disconnectBtn.addEventListener("click", () => {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.close();
