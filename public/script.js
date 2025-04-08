@@ -5,7 +5,6 @@ let username = "";
 fetch('/get-ws-endpoint')
   .then(res => res.json())
   .then(data => {
-    console.log("Fetched WebSocket endpoint:", data);
     if (!data.endpoint) throw new Error("Missing endpoint in response");
     connectSocket(data.endpoint);
   })
