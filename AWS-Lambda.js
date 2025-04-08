@@ -1,3 +1,7 @@
+// NOTE: This code should be set up in AWS lambda function
+// I just added it here as a reference
+
+
 const ENDPOINT = 'WS url'
 // AWS lambda code for reference
 
